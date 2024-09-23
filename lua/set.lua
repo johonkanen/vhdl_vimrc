@@ -29,3 +29,25 @@ vim.opt.isfname:append("@-@")
 vim.opt.updatetime = 50
 
 vim.opt.colorcolumn = "80"
+
+-- Function to hide git ignored files in netrw
+local function hide_gitignored_files()
+  local handle = io.popen('git ls-files -o -i --exclude-standard --directory')
+  if handle then
+    local result = handle:read("*a")
+    handle:close()
+    local files = vim.split(result, '\n')
+    for _, file in ipairs(files) do
+      if file ~= '' then
+        vim.o.wildignore = vim.o.wildignore .. ',' .. file
+      end
+    end
+  end
+end
+
+-- Automatically run when netrw is opened
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "netrw",
+  callback = hide_gitignored_files
+})
+

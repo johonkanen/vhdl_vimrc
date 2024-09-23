@@ -2,7 +2,7 @@
 vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
 vim.keymap.set("n", "<leader>vs", vim.cmd.vs)
-vim.keymap.set("n", "<leader>vp", vim.cmd.sp)
+vim.keymap.set("n", "<leader>sp", vim.cmd.sp)
 
 
 -- map alt+hjkl to move between splits

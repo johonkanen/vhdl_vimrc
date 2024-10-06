@@ -8,7 +8,21 @@ return {
     },
 
     config = function()
-        require('telescope').setup({})
+        require('telescope').setup({
+          file_ignore_patterns = { ".git\\", "node_modules\\", "target\\" },
+    vimgrep_arguments = {
+      'rg',
+      '--color=never',
+      '--no-heading',
+      '--with-filename',
+      '--line-number',
+      '--column',
+      '--smart-case',
+      '--glob=!**/.git/*',    -- Ignore .git directory
+      '--hidden',             -- Include hidden files
+      '--ignore-file', '.gitignore', -- Respect .gitignore
+    },
+        })
 
         local builtin = require('telescope.builtin')
         vim.keymap.set('n', '<leader>pf', builtin.find_files, {})

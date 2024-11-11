@@ -38,32 +38,12 @@ vim.g.netrw_keepdir = 1 -- Automatically change to directory opened in netrw
 -- set blinking highlight on cursor
 vim.opt.guicursor = "n-v-c:block-blinkon1-blinkoff1-blinkwait250-Cursor/lCursor,i:ver25-blinkon1-blinkoff1-blinkwait250-Cursor/lCursor"
 
--- Hide files listed in .gitignore or common patterns like .git, node_modules, etc.
--- vim.g.netrw_list_hide = [[\(^\|\s\s\)\zs\.\S\+]]
--- vim.g.netrw_list_hide = vim.g.netrw_list_hide .. [[,\(^\|\s\s\)\zsnode_modules]]
--- vim.g.netrw_list_hide = vim.g.netrw_list_hide .. [[,\(^\|\s\s\)\zstarget]]
--- vim.g.netrw_list_hide = vim.g.netrw_list_hide .. [[,\(^\|\s\s\)\zsdist]]
--- vim.g.netrw_list_hide = vim.g.netrw_list_hide .. [[,\(^\|\s\s\)\zsgit]]
+-- Copy with Ctrl+Insert
+vim.api.nvim_set_keymap('n', '<C-Insert>', '"+y', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', '<C-Insert>', '"+y', { noremap = true, silent = true })
 
--- Function to hide git ignored files in netrw
--- local function hide_gitignored_files()
---   local handle = io.popen('git ls-files -o -i --exclude-standard --directory')
---   if handle then
---     local result = handle:read("*a")
---     handle:close()
---     local files = vim.split(result, '\n')
---     for _, file in ipairs(files) do
---       if file ~= '' then
---         vim.o.wildignore = vim.o.wildignore .. ',' .. file
---       end
---     end
---   end
--- end
---
--- -- Automatically run when netrw is opened
--- vim.api.nvim_create_autocmd("FileType", {
---   pattern = "netrw",
---   callback = hide_gitignored_files
--- })
+-- Paste with Shift+Insert
+vim.api.nvim_set_keymap('n', '<S-Insert>', '"+p', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('i', '<S-Insert>', '<C-R>+', { noremap = true, silent = true })
 
-
+vim.api.nvim_set_keymap('n', '<C-v>', '<C-v>', {noremap = true, silent = true})

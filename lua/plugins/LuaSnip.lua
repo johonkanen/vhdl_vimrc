@@ -16,7 +16,7 @@ return {
             local path = vim.fn.stdpath("config") .. "/mysnippets/"
             require("luasnip.loaders.from_lua").lazy_load({ paths = path })
 
-            vim.keymap.set({"i"}, "<S-Space>", function() ls.expand() end, {silent = true})
+            vim.keymap.set({"i"}, "<C-l>", function() ls.expand() end, {silent = true})
 
             vim.keymap.set({"i", "s"}, "<C-s>;", function() ls.jump(1) end, {silent = true})
             -- vim.keymap.set({"i", "s"}, "<C-s>,", function() ls.jump(-1) end, {silent = true})

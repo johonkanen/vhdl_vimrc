@@ -16,6 +16,24 @@ local function claude_scroller(buf)
         { wheel_up = WHEEL_UP, wheel_down = WHEEL_DOWN, page_up = PAGE_UP, page_down = PAGE_DOWN }
 end
 
+-- j/k in the Claude buffer move the cursor normally, but once it reaches the
+-- 'scrolloff' zone at the top/bottom edge they scroll Claude's view instead --
+-- mirroring how Neovim scrolls a normal buffer at the margins.
+local function edge_motion(send, seq, dir)
+    return function()
+        local so = math.max(tonumber(vim.wo.scrolloff) or 0, 1)
+        local wl = vim.fn.winline()
+        local wh = vim.api.nvim_win_get_height(0)
+        if dir == "up" and wl <= so + 1 then
+            send(seq.wheel_up, 2)
+        elseif dir == "down" and wl >= wh - so then
+            send(seq.wheel_down, 2)
+        else
+            vim.cmd("normal! " .. (dir == "up" and "k" or "j"))
+        end
+    end
+end
+
 -- Build the slug Claude Code uses for the current working directory's
 -- session folder: every "/" and "." in the path becomes "-".
 local function session_dir()
@@ -136,13 +154,15 @@ return {
                 for _, k in ipairs({ "h", "j", "k", "l" }) do
                     vim.keymap.set("t", "<A-" .. k .. ">", [[<C-\><C-n><C-w>]] .. k, { buffer = ev.buf })
                 end
-                -- Scroll Claude's transcript with the usual motions from normal mode:
-                -- j/k, <C-e>/<C-y>, <C-d>/<C-u>, <C-f>/<C-b>, <PageUp>/<PageDown>,
-                -- the mouse wheel, and gg/G.
+                -- In normal mode: h/l/w/b and friends move the cursor as usual;
+                -- j/k move the cursor too but scroll Claude's transcript once it
+                -- reaches the top/bottom margin. <C-e>/<C-y>, <C-d>/<C-u>,
+                -- <C-f>/<C-b>, <PageUp>/<PageDown>, the wheel and gg/G scroll
+                -- Claude directly (cursor stays put), like nvim scroll commands.
                 local send, seq = claude_scroller(ev.buf)
+                vim.keymap.set("n", "k", edge_motion(send, seq, "up"), { buffer = ev.buf })
+                vim.keymap.set("n", "j", edge_motion(send, seq, "down"), { buffer = ev.buf })
                 local nmaps = {
-                    ["k"] = { seq.wheel_up, 3 },
-                    ["j"] = { seq.wheel_down, 3 },
                     ["<C-y>"] = { seq.wheel_up, 1 },
                     ["<C-e>"] = { seq.wheel_down, 1 },
                     ["<C-u>"] = { seq.wheel_up, 12 },

@@ -12,6 +12,9 @@ return {
             local ls = require("luasnip")
             ls.filetype_extend("javascript", { "jsdoc" })
 
+            -- Load friendly-snippets (VSCode-format, includes VHDL).
+            require("luasnip.loaders.from_vscode").lazy_load()
+
             -- Add your custom 'mysnippets' folder
             local path = vim.fn.stdpath("config") .. "/mysnippets/"
             require("luasnip.loaders.from_lua").lazy_load({ paths = path })

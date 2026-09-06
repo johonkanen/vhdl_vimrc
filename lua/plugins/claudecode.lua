@@ -1,3 +1,21 @@
+-- Claude Code repaints its transcript in place and keeps no terminal
+-- scrollback, so Neovim's own scroll keys have nothing to move through.
+-- Instead, forward scroll input to Claude, which scrolls its own view.
+-- (Verified: Claude responds to xterm PageUp/PageDown and SGR wheel events.)
+local function claude_scroller(buf)
+    local job = vim.b[buf].terminal_job_id
+    local WHEEL_UP = "\27[<64;1;1M"
+    local WHEEL_DOWN = "\27[<65;1;1M"
+    local PAGE_UP = "\27[5~"
+    local PAGE_DOWN = "\27[6~"
+    return function(seq, count)
+        if job then
+            vim.fn.chansend(job, string.rep(seq, count or 1))
+        end
+    end,
+        { wheel_up = WHEEL_UP, wheel_down = WHEEL_DOWN, page_up = PAGE_UP, page_down = PAGE_DOWN }
+end
+
 -- Build the slug Claude Code uses for the current working directory's
 -- session folder: every "/" and "." in the path becomes "-".
 local function session_dir()
@@ -117,6 +135,38 @@ return {
                 -- <A-hjkl> jumps between splits even while typing in Claude (matches normal mode).
                 for _, k in ipairs({ "h", "j", "k", "l" }) do
                     vim.keymap.set("t", "<A-" .. k .. ">", [[<C-\><C-n><C-w>]] .. k, { buffer = ev.buf })
+                end
+                -- Scroll Claude's transcript with the usual motions from normal mode:
+                -- j/k, <C-e>/<C-y>, <C-d>/<C-u>, <C-f>/<C-b>, <PageUp>/<PageDown>,
+                -- the mouse wheel, and gg/G.
+                local send, seq = claude_scroller(ev.buf)
+                local nmaps = {
+                    ["k"] = { seq.wheel_up, 3 },
+                    ["j"] = { seq.wheel_down, 3 },
+                    ["<C-y>"] = { seq.wheel_up, 1 },
+                    ["<C-e>"] = { seq.wheel_down, 1 },
+                    ["<C-u>"] = { seq.wheel_up, 12 },
+                    ["<C-d>"] = { seq.wheel_down, 12 },
+                    ["<C-b>"] = { seq.page_up, 1 },
+                    ["<C-f>"] = { seq.page_down, 1 },
+                    ["<PageUp>"] = { seq.page_up, 1 },
+                    ["<PageDown>"] = { seq.page_down, 1 },
+                    ["<ScrollWheelUp>"] = { seq.wheel_up, 3 },
+                    ["<ScrollWheelDown>"] = { seq.wheel_down, 3 },
+                    ["gg"] = { seq.page_up, 40 },
+                    ["G"] = { seq.page_down, 40 },
+                }
+                for lhs, args in pairs(nmaps) do
+                    vim.keymap.set("n", lhs, function()
+                        send(args[1], args[2])
+                    end, { buffer = ev.buf })
+                end
+                -- PageUp/PageDown scroll while still in terminal mode; <C-u>/<C-d> are
+                -- left alone there since Claude uses <C-u> to clear the input line.
+                for _, lhs in ipairs({ "<PageUp>", "<PageDown>" }) do
+                    vim.keymap.set("t", lhs, function()
+                        send(nmaps[lhs][1], nmaps[lhs][2])
+                    end, { buffer = ev.buf })
                 end
                 -- Show the usage widget alongside Claude. Disable with `vim.g.claude_usage_widget = false`.
                 if vim.g.claude_usage_widget ~= false then

@@ -105,6 +105,14 @@ return {
             group = vim.api.nvim_create_augroup("claude_session_prompt", { clear = true }),
             callback = maybe_prompt_on_startup,
         })
+        -- <C-q> leaves terminal mode in the Claude split; <Esc> stays reserved for Claude.
+        vim.api.nvim_create_autocmd("TermOpen", {
+            group = vim.api.nvim_create_augroup("claude_term_keys", { clear = true }),
+            pattern = "term://*claude*",
+            callback = function(ev)
+                vim.keymap.set("t", "<C-q>", [[<C-\><C-n>]], { buffer = ev.buf, desc = "Claude: exit terminal mode" })
+            end,
+        })
     end,
     -- `<leader>a` is taken by harpoon, so Claude lives under `<leader>c`.
     keys = {

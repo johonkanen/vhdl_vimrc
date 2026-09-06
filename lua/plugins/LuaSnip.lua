@@ -21,6 +21,16 @@ return {
 
             vim.keymap.set({"i"}, "<C-l>", function() ls.expand() end, {silent = true})
 
+            -- Shift-Space: expand the snippet under the cursor, or jump to the
+            -- next placeholder if one is active (matches the old basic-vim setup).
+            -- Needs a terminal that reports <S-Space> distinctly (kitty keyboard
+            -- protocol) -- kitty, wezterm, recent Windows Terminal, alacritty.
+            vim.keymap.set({"i", "s"}, "<S-Space>", function()
+                if ls.expand_or_jumpable() then
+                    ls.expand_or_jump()
+                end
+            end, {silent = true})
+
             vim.keymap.set({"i", "s"}, "<C-s>;", function() ls.jump(1) end, {silent = true})
             -- vim.keymap.set({"i", "s"}, "<C-s>,", function() ls.jump(-1) end, {silent = true})
 

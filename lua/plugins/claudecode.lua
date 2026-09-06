@@ -105,12 +105,16 @@ return {
             group = vim.api.nvim_create_augroup("claude_session_prompt", { clear = true }),
             callback = maybe_prompt_on_startup,
         })
-        -- <C-q> leaves terminal mode in the Claude split; <Esc> stays reserved for Claude.
         vim.api.nvim_create_autocmd("TermOpen", {
             group = vim.api.nvim_create_augroup("claude_term_keys", { clear = true }),
             pattern = "term://*claude*",
             callback = function(ev)
+                -- <C-q> leaves terminal mode in the Claude split; <Esc> stays reserved for Claude.
                 vim.keymap.set("t", "<C-q>", [[<C-\><C-n>]], { buffer = ev.buf, desc = "Claude: exit terminal mode" })
+                -- Show the usage widget alongside Claude. Disable with `vim.g.claude_usage_widget = false`.
+                if vim.g.claude_usage_widget ~= false then
+                    require("claude_usage").open()
+                end
             end,
         })
     end,
@@ -122,6 +126,7 @@ return {
         { "<leader>cf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
         { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude (built-in picker)" },
         { "<leader>cl", pick_session, desc = "List Claude sessions" },
+        { "<leader>cu", function() require("claude_usage").toggle() end, desc = "Toggle Claude usage widget" },
         { "<leader>cm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
         { "<leader>cb", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },
         { "<leader>cs", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send selection to Claude" },

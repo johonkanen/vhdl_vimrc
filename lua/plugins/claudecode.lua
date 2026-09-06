@@ -97,6 +97,9 @@ return {
             provider = "native",
             split_side = "right",
             split_width_percentage = 0.35,
+            -- Land in normal mode when focusing the split, so all the usual
+            -- Neovim navigation works on Claude's output. Press `i` to type.
+            auto_insert = false,
         },
     },
     -- Register the startup prompt even though the plugin itself loads lazily.
@@ -111,6 +114,10 @@ return {
             callback = function(ev)
                 -- <C-q> leaves terminal mode in the Claude split; <Esc> stays reserved for Claude.
                 vim.keymap.set("t", "<C-q>", [[<C-\><C-n>]], { buffer = ev.buf, desc = "Claude: exit terminal mode" })
+                -- <A-hjkl> jumps between splits even while typing in Claude (matches normal mode).
+                for _, k in ipairs({ "h", "j", "k", "l" }) do
+                    vim.keymap.set("t", "<A-" .. k .. ">", [[<C-\><C-n><C-w>]] .. k, { buffer = ev.buf })
+                end
                 -- Show the usage widget alongside Claude. Disable with `vim.g.claude_usage_widget = false`.
                 if vim.g.claude_usage_widget ~= false then
                     require("claude_usage").open()

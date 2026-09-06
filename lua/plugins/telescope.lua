@@ -4,12 +4,19 @@ return {
     tag = "0.1.5",
 
     dependencies = {
-        "nvim-lua/plenary.nvim"
+        "nvim-lua/plenary.nvim",
+        -- Render vim.ui.select (used by the Claude session picker) as a Telescope window.
+        "nvim-telescope/telescope-ui-select.nvim",
     },
 
     config = function()
         require('telescope').setup({
           file_ignore_patterns = { ".git\\", "node_modules\\", "target\\" },
+          extensions = {
+            ["ui-select"] = {
+              require("telescope.themes").get_dropdown({}),
+            },
+          },
     vimgrep_arguments = {
       'rg',
       '--color=never',
@@ -23,6 +30,8 @@ return {
       '--ignore-file', '.gitignore', -- Respect .gitignore
     },
         })
+
+        require('telescope').load_extension('ui-select')
 
         local builtin = require('telescope.builtin')
         vim.keymap.set('n', '<leader>pf', builtin.find_files, {})

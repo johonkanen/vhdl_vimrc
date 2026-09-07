@@ -41,6 +41,32 @@ local function session_dir()
     return vim.fn.expand("~/.claude/projects/") .. slug
 end
 
+-- Custom session labels live next to the transcripts, keyed by session id.
+local function labels_file()
+    return session_dir() .. "/nvim-labels.json"
+end
+
+local function load_labels()
+    local fd = io.open(labels_file(), "r")
+    if not fd then
+        return {}
+    end
+    local raw = fd:read("*a")
+    fd:close()
+    local ok, tbl = pcall(vim.json.decode, raw)
+    return (ok and type(tbl) == "table") and tbl or {}
+end
+
+local function save_labels(tbl)
+    local fd = io.open(labels_file(), "w")
+    if not fd then
+        vim.notify("Claude: could not write " .. labels_file(), vim.log.levels.ERROR)
+        return
+    end
+    fd:write(vim.json.encode(tbl))
+    fd:close()
+end
+
 -- Read the first human-typed prompt from a session .jsonl for use as a label.
 local function session_preview(path)
     local fd = io.open(path, "r")
@@ -68,15 +94,53 @@ local function collect_sessions()
     table.sort(files, function(a, b)
         return vim.fn.getftime(a) > vim.fn.getftime(b)
     end)
+    local labels = load_labels()
     local items = {}
     for _, path in ipairs(files) do
+        local id = vim.fn.fnamemodify(path, ":t:r")
         local preview = (session_preview(path) or "(no preview)"):gsub("%s+", " "):sub(1, 80)
+        local custom = labels[id]
         table.insert(items, {
-            id = vim.fn.fnamemodify(path, ":t:r"),
-            label = string.format("%s  %s", os.date("%Y-%m-%d %H:%M", vim.fn.getftime(path)), preview),
+            id = id,
+            custom = custom,
+            preview = preview,
+            label = string.format(
+                "%s  %s",
+                os.date("%Y-%m-%d %H:%M", vim.fn.getftime(path)),
+                custom and ("★ " .. custom) or preview
+            ),
         })
     end
     return items
+end
+
+-- Pick a session and give it (or clear) a custom label shown in the picker.
+local function rename_session()
+    local items = collect_sessions()
+    if vim.tbl_isempty(items) then
+        vim.notify("No Claude sessions for " .. vim.fn.getcwd(), vim.log.levels.INFO)
+        return
+    end
+    vim.ui.select(items, {
+        prompt = "Rename which session?",
+        format_item = function(item)
+            return item.label
+        end,
+    }, function(choice)
+        if not choice then
+            return
+        end
+        vim.ui.input({ prompt = "Label (empty to clear): ", default = choice.custom or "" }, function(input)
+            if input == nil then
+                return
+            end
+            input = vim.trim(input)
+            local labels = load_labels()
+            labels[choice.id] = input ~= "" and input or nil
+            save_labels(labels)
+            vim.notify(input ~= "" and ('Claude session labelled "' .. input .. '"') or "Claude session label cleared")
+        end)
+    end)
 end
 
 -- Show a picker of past sessions; resume the chosen one.
@@ -203,6 +267,7 @@ return {
         { "<leader>cf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
         { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude (built-in picker)" },
         { "<leader>cl", pick_session, desc = "List Claude sessions" },
+        { "<leader>cR", rename_session, desc = "Rename a Claude session" },
         { "<leader>cu", function() require("claude_usage").toggle() end, desc = "Toggle Claude usage widget" },
         { "<leader>cm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
         { "<leader>cb", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },

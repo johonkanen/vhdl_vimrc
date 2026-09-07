@@ -162,6 +162,40 @@ local function pick_session(items)
     end)
 end
 
+-- Pick a session and permanently delete its transcript (and any label).
+local function delete_session()
+    local items = collect_sessions()
+    if vim.tbl_isempty(items) then
+        vim.notify("No Claude sessions for " .. vim.fn.getcwd(), vim.log.levels.INFO)
+        return
+    end
+    vim.ui.select(items, {
+        prompt = "Delete which session?",
+        format_item = function(item)
+            return item.label
+        end,
+    }, function(choice)
+        if not choice then
+            return
+        end
+        local name = choice.custom or choice.preview
+        if vim.fn.confirm('Delete Claude session "' .. name .. '" permanently?', "&Yes\n&No", 2) ~= 1 then
+            return
+        end
+        local ok, err = os.remove(session_dir() .. "/" .. choice.id .. ".jsonl")
+        local labels = load_labels()
+        if labels[choice.id] ~= nil then
+            labels[choice.id] = nil
+            save_labels(labels)
+        end
+        if ok then
+            vim.notify("Claude session deleted")
+        else
+            vim.notify("Claude: " .. (err or "could not delete session"), vim.log.levels.ERROR)
+        end
+    end)
+end
+
 -- On startup, if Neovim opened without a file and this project has past
 -- Claude sessions, offer to resume one. Disable with `vim.g.claude_session_prompt = false`.
 local function maybe_prompt_on_startup()
@@ -268,6 +302,7 @@ return {
         { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude (built-in picker)" },
         { "<leader>cl", pick_session, desc = "List Claude sessions" },
         { "<leader>cR", rename_session, desc = "Rename a Claude session" },
+        { "<leader>cD", delete_session, desc = "Delete a Claude session" },
         { "<leader>cu", function() require("claude_usage").toggle() end, desc = "Toggle Claude usage widget" },
         { "<leader>cm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
         { "<leader>cb", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },

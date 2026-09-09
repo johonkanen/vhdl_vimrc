@@ -65,7 +65,11 @@ local function fetch()
         if res.code ~= 0 then
             state.data = { error = "ccusage failed" }
         else
-            local ok, parsed = pcall(vim.json.decode, res.stdout or "")
+            -- luanil turns JSON null into Lua nil instead of the userdata
+            -- vim.NIL, so a null "projection" (e.g. a block with no burn-rate
+            -- estimate yet) can't be mistaken for a truthy table below.
+            local ok, parsed =
+                pcall(vim.json.decode, res.stdout or "", { luanil = { object = true, array = true } })
             local block = ok and parsed.blocks and parsed.blocks[1] or nil
             if block then
                 state.data = {

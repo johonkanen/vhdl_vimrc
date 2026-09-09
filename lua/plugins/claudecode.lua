@@ -75,7 +75,7 @@ local function session_preview(path)
     end
     local preview
     for line in fd:lines() do
-        local ok, entry = pcall(vim.json.decode, line)
+        local ok, entry = pcall(vim.json.decode, line, { luanil = { object = true, array = true } })
         if ok and entry.type == "user" and entry.promptSource == "typed" then
             local content = entry.message and entry.message.content
             if type(content) == "string" then

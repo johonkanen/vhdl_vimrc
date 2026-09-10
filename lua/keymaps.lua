@@ -1,9 +1,32 @@
 
 vim.g.mapleader = " "
--- Open netrw with the cursor on the current file. In a project (cwd set by
--- vim-rooter) it opens the tree at the project root and expands every
--- ancestor directory down to the file, so it reads at a glance where the
--- file lives even in a deep repo; otherwise it just opens the file's own
+-- Find the nearest ancestor directory of `filepath` containing one of
+-- vim-rooter's markers. Computed directly from the file's own path rather
+-- than trusting vim.fn.getcwd() -- vim-rooter caches its result per buffer
+-- (b:rootDir) and only recomputes on BufEnter/BufReadPost, so the global cwd
+-- can still reflect a previous buffer's project (e.g. right after Telescope
+-- hands off a freshly opened file) when this key is pressed.
+local ROOT_MARKERS = { ".git", "Makefile", "package.json" }
+local function project_root(filepath)
+    local dir = vim.fn.fnamemodify(filepath, ":h")
+    while true do
+        for _, marker in ipairs(ROOT_MARKERS) do
+            if vim.fn.getftype(dir .. "/" .. marker) ~= "" then
+                return dir
+            end
+        end
+        local parent = vim.fn.fnamemodify(dir, ":h")
+        if parent == dir then
+            return nil
+        end
+        dir = parent
+    end
+end
+
+-- Open netrw with the cursor on the current file. In a project it opens the
+-- tree at the project root and expands every ancestor directory down to the
+-- file, so it reads at a glance where the file lives even in a deep repo
+-- (e.g. inside a git submodule); otherwise it just opens the file's own
 -- directory, as before.
 local function netrw_tree_indent(line)
     local depth = 0
@@ -58,9 +81,8 @@ vim.keymap.set("n", "<leader>pv", function()
         return
     end
 
-    local root = vim.fn.getcwd()
-    local under_root = vim.g.netrw_liststyle == 3 and filepath:sub(1, #root + 1) == root .. "/"
-    if not under_root then
+    local root = vim.g.netrw_liststyle == 3 and project_root(filepath) or nil
+    if not root then
         vim.cmd.Ex()
         vim.fn.search(netrw_pattern(vim.fn.fnamemodify(filepath, ":t")), "cw")
         return

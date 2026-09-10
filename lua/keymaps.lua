@@ -74,29 +74,42 @@ local function netrw_expand_current_dir()
     netrw_toggle_current_dir()
 end
 
+-- TEMPORARY: verbose while tracking down a report of this landing at the
+-- wrong root in some sessions. Remove once resolved.
+local function pv_debug(msg)
+    vim.notify("<leader>pv: " .. msg, vim.log.levels.WARN)
+end
+
 vim.keymap.set("n", "<leader>pv", function()
     local filepath = vim.fn.expand("%:p")
     if filepath == "" then
+        pv_debug("expand('%:p') was empty -- falling back to plain Ex()")
         vim.cmd.Ex()
         return
     end
 
     local root = vim.g.netrw_liststyle == 3 and project_root(filepath) or nil
     if not root then
+        pv_debug(("no project root found for %s (netrw_liststyle=%s) -- opening its own directory")
+            :format(filepath, vim.inspect(vim.g.netrw_liststyle)))
         vim.cmd.Ex()
         vim.fn.search(netrw_pattern(vim.fn.fnamemodify(filepath, ":t")), "cw")
         return
     end
 
+    pv_debug(("filepath=%s root=%s"):format(filepath, root))
     vim.cmd("Explore " .. vim.fn.fnameescape(root))
     local parts = vim.split(filepath:sub(#root + 2), "/", { plain = true })
     for i = 1, #parts - 1 do
         if vim.fn.search(netrw_pattern(parts[i], "/"), "cW") == 0 then
+            pv_debug("couldn't find '" .. parts[i] .. "/' in the listing -- stopping expansion there")
             break
         end
         netrw_expand_current_dir()
     end
-    vim.fn.search(netrw_pattern(parts[#parts]), "cw")
+    if vim.fn.search(netrw_pattern(parts[#parts]), "cw") == 0 then
+        pv_debug("couldn't find '" .. parts[#parts] .. "' in the listing")
+    end
 end, { desc = "Explore (netrw) reveal current file" })
 vim.keymap.set("n", "<leader>vs", vim.cmd.vs)
 vim.keymap.set("n", "<leader>sp", vim.cmd.sp)

@@ -1,6 +1,13 @@
 
 vim.g.mapleader = " "
-vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
+-- Open netrw in the current file's directory with the cursor on that file.
+vim.keymap.set("n", "<leader>pv", function()
+    local file = vim.fn.expand("%:t")
+    vim.cmd.Ex()
+    if file ~= "" then
+        vim.fn.search([[\V]] .. vim.fn.escape(file, [[\]]), "cw")
+    end
+end, { desc = "Explore (netrw) at current file" })
 vim.keymap.set("n", "<leader>vs", vim.cmd.vs)
 vim.keymap.set("n", "<leader>sp", vim.cmd.sp)
 

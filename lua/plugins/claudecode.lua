@@ -35,9 +35,11 @@ local function edge_motion(send, seq, dir)
 end
 
 -- Build the slug Claude Code uses for the current working directory's
--- session folder: every "/" and "." in the path becomes "-".
+-- session folder: every non-alphanumeric character (not just "/" and ".",
+-- e.g. "_" too -- confirmed against a real "datacenter_peak_shaving"
+-- project) becomes "-".
 local function session_dir()
-    local slug = vim.fn.getcwd():gsub("[/.]", "-")
+    local slug = vim.fn.getcwd():gsub("[^%w]", "-")
     return vim.fn.expand("~/.claude/projects/") .. slug
 end
 

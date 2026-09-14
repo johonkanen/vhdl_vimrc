@@ -196,6 +196,23 @@ local function delete_session()
     end)
 end
 
+-- ClaudeCode/ClaudeCode --continue/--resume only *spawn* the CLI when no
+-- terminal exists yet for this Neovim session -- once one does (even
+-- hidden), every one of those commands just toggles/focuses that same
+-- running process, so the flag is silently ignored. Delete the terminal
+-- buffer to actually end that process, so the next <leader>cn/cc starts
+-- a genuinely new one.
+local function kill_claude_terminal()
+    local killed = false
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.bo[buf].buftype == "terminal" and vim.api.nvim_buf_get_name(buf):match("claude") then
+            vim.api.nvim_buf_delete(buf, { force = true })
+            killed = true
+        end
+    end
+    vim.notify(killed and "Claude terminal closed" or "No Claude terminal running", vim.log.levels.INFO)
+end
+
 -- On startup, if Neovim opened without a file and this project has past
 -- Claude sessions, offer to resume one. Disable with `vim.g.claude_session_prompt = false`.
 local function maybe_prompt_on_startup()
@@ -298,6 +315,7 @@ return {
         { "<leader>c", nil, desc = "Claude" },
         { "<leader>cc", "<cmd>ClaudeCode --continue<cr>", desc = "Continue last Claude session" },
         { "<leader>cn", "<cmd>ClaudeCode<cr>", desc = "New Claude session" },
+        { "<leader>cx", kill_claude_terminal, desc = "Kill running Claude terminal (so <leader>cn/cc starts fresh)" },
         { "<leader>cf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
         { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude (built-in picker)" },
         { "<leader>cl", pick_session, desc = "List Claude sessions" },
